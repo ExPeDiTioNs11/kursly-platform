@@ -45,3 +45,6 @@ playwright-report/
 .eslintcache
 .cache/
 .turbo/
+
+# Local Prisma engine binaries (downloaded for offline use)
+.prisma-engines/

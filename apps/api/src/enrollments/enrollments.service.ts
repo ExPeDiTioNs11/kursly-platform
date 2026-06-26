@@ -1,4 +1,10 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { CourseStatus } from '@kursly/shared';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -9,6 +15,11 @@ export class EnrollmentsService {
     const course = await this.prisma.course.findUnique({ where: { id: courseId } });
     if (!course) {
       throw new NotFoundException('Course not found');
+    }
+    // Students may only enroll in published courses — drafts/archived are not
+    // open for enrollment.
+    if (course.status !== CourseStatus.PUBLISHED) {
+      throw new ForbiddenException('This course is not open for enrollment');
     }
     const existing = await this.prisma.enrollment.findUnique({
       where: { userId_courseId: { userId, courseId } },

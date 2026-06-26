@@ -125,10 +125,13 @@ The API is served under the `/api` prefix; interactive Swagger docs live at
 - `GET/POST/DELETE /api/enrollments`
 - `GET/PUT /api/progress/...`
 - `GET/PUT/DELETE /api/courses/:courseId/reviews`
-- `POST /api/storage/presign-upload` · `GET /api/storage/playback-url`
+- `POST /api/storage/presign-upload` · `GET /api/storage/lessons/:lessonId/playback-url`
+  (preview lessons are open; the full video requires enrollment, ownership or admin)
 
 Authentication uses short-lived JWT access tokens plus rotating refresh tokens
-(refresh tokens are stored hashed with bcrypt and revoked on rotation/logout).
+(refresh tokens are stored hashed with bcrypt and revoked on rotation/logout, with
+reuse detection that revokes the whole token family on replay). Auth endpoints are
+rate-limited, and all routes are protected by default unless marked public.
 
 ## Cloudflare R2 (video storage)
 

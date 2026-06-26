@@ -33,6 +33,7 @@
     "@nestjs/passport": "^10.0.3",
     "@nestjs/platform-express": "^10.4.15",
     "@nestjs/swagger": "^8.1.0",
+    "@nestjs/throttler": "^6.4.0",
     "@prisma/client": "^6.1.0",
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",
@@ -69,6 +70,10 @@
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "moduleNameMapper": {
+      "^@kursly/shared$": "<rootDir>/../../../packages/shared/src/index.ts",
+      "^(\\.{1,2}/.*)\\.js$": "$1"
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"

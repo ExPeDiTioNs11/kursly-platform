@@ -1,4 +1,4 @@
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -34,7 +34,10 @@ async function bootstrap() {
 
   const port = config.get<number>('API_PORT') ?? 4000;
   await app.listen(port);
-  console.log(`Kursly API listening on http://localhost:${port}/api (docs at /api/docs)`);
+  Logger.log(
+    `Kursly API listening on http://localhost:${port}/api (docs at /api/docs)`,
+    'Bootstrap',
+  );
 }
 
 void bootstrap();
