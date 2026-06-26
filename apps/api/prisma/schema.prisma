@@ -1,0 +1,192 @@
+// Kursly — Prisma schema
+// Phase 1 data model. Payment / certificate / quiz models are deferred to Phase 2.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  INSTRUCTOR
+  ADMIN
+}
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum CourseLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role     @default(STUDENT)
+  avatarUrl    String?
+  bio          String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  courses       Course[]       @relation("InstructorCourses")
+  enrollments   Enrollment[]
+  progress      Progress[]
+  reviews       Review[]
+  refreshTokens RefreshToken[]
+
+  @@index([role])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  // Stores a bcrypt hash of the refresh token, never the raw token.
+  tokenHash String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+
+  courses Course[]
+
+  @@map("categories")
+}
+
+model Course {
+  id           String       @id @default(cuid())
+  slug         String       @unique
+  title        String
+  subtitle     String?
+  description  String?
+  thumbnailUrl String?
+  level        CourseLevel  @default(BEGINNER)
+  status       CourseStatus @default(DRAFT)
+  // Price stored in minor units (e.g. cents) to avoid float rounding.
+  price        Int          @default(0)
+
+  instructorId String
+  instructor   User    @relation("InstructorCourses", fields: [instructorId], references: [id], onDelete: Cascade)
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  sections    Section[]
+  enrollments Enrollment[]
+  reviews     Review[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([instructorId])
+  @@index([categoryId])
+  @@index([status])
+  @@map("courses")
+}
+
+model Section {
+  id       String @id @default(cuid())
+  title    String
+  order    Int    @default(0)
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  lessons Lesson[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([courseId, order])
+  @@index([courseId])
+  @@map("sections")
+}
+
+model Lesson {
+  id              String  @id @default(cuid())
+  title           String
+  order           Int     @default(0)
+  // R2 object key for the source video; playback URLs are derived from it.
+  videoKey        String?
+  durationSeconds Int     @default(0)
+  isPreview       Boolean @default(false)
+
+  sectionId String
+  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  progress Progress[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([sectionId, order])
+  @@index([sectionId])
+  @@map("lessons")
+}
+
+model Enrollment {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+  @@map("enrollments")
+}
+
+model Progress {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId        String
+  lesson          Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  completed       Boolean  @default(false)
+  // Last playback position in seconds, for resume-where-you-left-off.
+  positionSeconds Int      @default(0)
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+  @@map("progress")
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int
+  comment   String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+  @@map("reviews")
+}
