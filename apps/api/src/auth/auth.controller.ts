@@ -1,5 +1,6 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import type { AuthResponse, AuthTokens, JwtPayload } from '@kursly/shared';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -17,7 +18,9 @@ export class AuthController {
     private readonly usersService: UsersService,
   ) {}
 
+  // Tighter limits on credential endpoints to blunt brute-force attempts.
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('register')
   @ApiOperation({ summary: 'Register a new account and receive tokens' })
   register(@Body() dto: RegisterDto): Promise<AuthResponse> {
@@ -25,6 +28,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Authenticate and receive access + refresh tokens' })

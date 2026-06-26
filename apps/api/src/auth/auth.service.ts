@@ -65,6 +65,10 @@ export class AuthService {
     });
     const match = await this.findMatchingToken(stored, refreshToken);
     if (!match) {
+      // Reuse detection: a valid-but-unmatched token that matches an already
+      // revoked record means a rotated token is being replayed (likely stolen).
+      // Revoke the whole family so the attacker and victim are both logged out.
+      await this.detectAndHandleReuse(payload.sub, refreshToken);
       throw new UnauthorizedException('Invalid refresh token');
     }
 
@@ -105,6 +109,23 @@ export class AuthService {
     return null;
   }
 
+  /**
+   * If a presented refresh token matches an already-revoked record for the
+   * user, treat it as token reuse and revoke every active token in the family.
+   */
+  private async detectAndHandleReuse(userId: string, rawToken: string): Promise<void> {
+    const revoked = await this.prisma.refreshToken.findMany({
+      where: { userId, revokedAt: { not: null } },
+    });
+    const reused = await this.findMatchingToken(revoked, rawToken);
+    if (reused) {
+      await this.prisma.refreshToken.updateMany({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+    }
+  }
+
   private async issueTokens(user: User): Promise<AuthTokens> {
     const payload: JwtPayload = { sub: user.id, email: user.email, role: user.role as Role };
 
@@ -124,6 +145,13 @@ export class AuthService {
         tokenHash,
         expiresAt: new Date(Date.now() + REFRESH_TTL_MS),
       },
+    });
+
+    // Opportunistically prune this user's expired tokens so the table — and the
+    // per-refresh bcrypt comparison set — stays small. Already-expired tokens
+    // can't be replayed (JWT verification fails), so they are safe to delete.
+    await this.prisma.refreshToken.deleteMany({
+      where: { userId: user.id, expiresAt: { lt: new Date() } },
     });
 
     return { accessToken, refreshToken };

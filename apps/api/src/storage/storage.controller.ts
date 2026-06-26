@@ -1,9 +1,11 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@kursly/shared';
+import type { JwtPayload } from '@kursly/shared';
 import { StorageService } from './storage.service';
 import { PresignUploadDto } from './dto/presign-upload.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @ApiTags('storage')
 @ApiBearerAuth()
@@ -18,9 +20,11 @@ export class StorageController {
     return this.storageService.createUploadUrl(dto.filename, dto.contentType);
   }
 
-  @Get('playback-url')
-  @ApiOperation({ summary: 'Resolve a playback URL for a stored video key' })
-  async playbackUrl(@Query('key') key: string) {
-    return { url: await this.storageService.getPlaybackUrl(key) };
+  @Get('lessons/:lessonId/playback-url')
+  @ApiOperation({
+    summary: 'Resolve a playback URL for a lesson (preview, owner/admin, or enrolled only)',
+  })
+  playbackUrl(@CurrentUser() user: JwtPayload, @Param('lessonId') lessonId: string) {
+    return this.storageService.getLessonPlaybackUrl(user, lessonId);
   }
 }

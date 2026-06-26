@@ -63,7 +63,9 @@ export class CoursesService {
         },
       },
     });
-    if (!course) {
+    // Only published courses are exposed on the public detail endpoint; drafts
+    // and archived courses must not leak via a guessed slug.
+    if (!course || course.status !== CourseStatus.PUBLISHED) {
       throw new NotFoundException('Course not found');
     }
     return {
@@ -107,7 +109,10 @@ export class CoursesService {
 
   async addSection(user: JwtPayload, courseId: string, dto: CreateSectionDto) {
     await this.assertOwnerOrAdmin(user, courseId);
-    return this.prisma.section.create({ data: { ...dto, courseId } });
+    // Auto-assign the next order when the caller omits it, so two sections never
+    // collide on the @@unique([courseId, order]) constraint.
+    const order = dto.order ?? (await this.nextOrder('section', { courseId }));
+    return this.prisma.section.create({ data: { title: dto.title, order, courseId } });
   }
 
   async addLesson(user: JwtPayload, sectionId: string, dto: CreateLessonDto) {
@@ -116,7 +121,26 @@ export class CoursesService {
       throw new NotFoundException('Section not found');
     }
     await this.assertOwnerOrAdmin(user, section.courseId);
-    return this.prisma.lesson.create({ data: { ...dto, sectionId } });
+    const order = dto.order ?? (await this.nextOrder('lesson', { sectionId }));
+    return this.prisma.lesson.create({ data: { ...dto, order, sectionId } });
+  }
+
+  /** Next free `order` value within a section/course, or 0 when empty. */
+  private async nextOrder(
+    model: 'section' | 'lesson',
+    where: Prisma.SectionWhereInput | Prisma.LessonWhereInput,
+  ): Promise<number> {
+    const agg =
+      model === 'section'
+        ? await this.prisma.section.aggregate({
+            where: where as Prisma.SectionWhereInput,
+            _max: { order: true },
+          })
+        : await this.prisma.lesson.aggregate({
+            where: where as Prisma.LessonWhereInput,
+            _max: { order: true },
+          });
+    return (agg._max.order ?? -1) + 1;
   }
 
   private async assertOwnerOrAdmin(user: JwtPayload, courseId: string): Promise<void> {
