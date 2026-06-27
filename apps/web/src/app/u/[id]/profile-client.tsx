@@ -329,8 +329,8 @@ function FollowListModal({
 
   useEffect(() => {
     clientApi
-      .get<SocialAuthor[]>(`follows/${userId}/${type}`)
-      .then(setList)
+      .get<Paginated<SocialAuthor>>(`follows/${userId}/${type}?pageSize=50`)
+      .then((res) => setList(res.items))
       .catch(() => setList([]));
   }, [userId, type]);
 

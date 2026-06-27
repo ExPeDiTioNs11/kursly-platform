@@ -1,4 +1,5 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { Role } from '@kursly/shared';
 import type { JwtPayload, StoryGroup } from '@kursly/shared';
 import { PrismaService } from '../prisma/prisma.service';
@@ -9,7 +10,21 @@ const STORY_TTL_MS = 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class StoriesService {
+  private readonly logger = new Logger(StoriesService.name);
+
   constructor(private readonly prisma: PrismaService) {}
+
+  /** Hourly job that permanently removes stories past their 24h lifetime. */
+  @Cron(CronExpression.EVERY_HOUR)
+  async purgeExpired(): Promise<void> {
+    const cutoff = new Date(Date.now() - STORY_TTL_MS);
+    const { count } = await this.prisma.story.deleteMany({
+      where: { createdAt: { lt: cutoff } },
+    });
+    if (count > 0) {
+      this.logger.log(`Purged ${count} expired stories`);
+    }
+  }
 
   create(currentUserId: string, dto: CreateStoryDto) {
     return this.prisma.story.create({

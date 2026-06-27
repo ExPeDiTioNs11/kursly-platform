@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Heart, Loader2, MessageCircle, MoreHorizontal, Pencil, Send, Trash2 } from 'lucide-react';
 import { Role } from '@kursly/shared';
-import type { Post, PostComment } from '@kursly/shared';
+import type { Paginated, Post, PostComment } from '@kursly/shared';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -74,8 +74,10 @@ export function PostCard({
     if (next && !commentsLoaded) {
       setLoadingComments(true);
       try {
-        const data = await clientApi.get<PostComment[]>(`posts/${post.id}/comments`);
-        setComments(data);
+        const data = await clientApi.get<Paginated<PostComment>>(
+          `posts/${post.id}/comments?pageSize=50`,
+        );
+        setComments(data.items);
         setCommentsLoaded(true);
       } catch {
         // leave closed-ish; user can retry
@@ -431,8 +433,8 @@ function Avatar({
 }) {
   const style = { width: size, height: size };
   if (avatarUrl) {
-    // eslint-disable-next-line @next/next/no-img-element
     return (
+      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={avatarUrl}
         alt={name}

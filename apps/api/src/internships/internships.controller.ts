@@ -19,6 +19,7 @@ import { UpdateInternshipDto } from './dto/update-internship.dto';
 import { QueryInternshipsDto } from './dto/query-internships.dto';
 import { ApplyDto } from './dto/apply.dto';
 import { UpdateApplicationDto } from './dto/update-application.dto';
+import { PaginationQueryDto } from '../common/pagination';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
@@ -96,9 +97,13 @@ export class InternshipsController {
 
   @Get(':id/applications')
   @Roles(Role.COMPANY, Role.ADMIN)
-  @ApiOperation({ summary: 'List applicants for a listing you own' })
-  applicants(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
-    return this.internshipsService.listApplicants(user, id);
+  @ApiOperation({ summary: 'List applicants for a listing you own (paginated)' })
+  applicants(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Query() q: PaginationQueryDto,
+  ) {
+    return this.internshipsService.listApplicants(user, id, q.page ?? 1, q.pageSize ?? 20);
   }
 
   @Patch('applications/:appId')

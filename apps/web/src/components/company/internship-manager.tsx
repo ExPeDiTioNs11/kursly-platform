@@ -4,7 +4,12 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Check, Loader2, Trash2, X } from 'lucide-react';
-import type { ApplicationStatus, InternshipApplicant, InternshipDetail } from '@kursly/shared';
+import type {
+  ApplicationStatus,
+  InternshipApplicant,
+  InternshipDetail,
+  Paginated,
+} from '@kursly/shared';
 import { clientApi } from '@/lib/client-api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,7 +42,10 @@ export function InternshipManager({ id }: { id: string }) {
       try {
         const [detail, apps] = await Promise.all([
           clientApi.get<InternshipDetail>(`internships/${id}`),
-          clientApi.get<InternshipApplicant[]>(`internships/${id}/applications`).catch(() => []),
+          clientApi
+            .get<Paginated<InternshipApplicant>>(`internships/${id}/applications?pageSize=100`)
+            .then((r) => r.items)
+            .catch(() => [] as InternshipApplicant[]),
         ]);
         setItem(detail);
         setApplicants(apps);
@@ -273,8 +281,8 @@ function Labeled({ label, children }: { label: string; children: React.ReactNode
 
 function Avatar({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
   if (avatarUrl) {
-    // eslint-disable-next-line @next/next/no-img-element
     return (
+      // eslint-disable-next-line @next/next/no-img-element
       <img src={avatarUrl} alt={name} className="h-10 w-10 shrink-0 rounded-full object-cover" />
     );
   }

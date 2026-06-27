@@ -10,7 +10,6 @@ import { CreateSectionDto } from './dto/create-section.dto';
 import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateSectionDto } from './dto/update-section.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
-import { averageRating } from '../common/rating';
 
 @Injectable()
 export class CoursesService {
@@ -55,8 +54,10 @@ export class CoursesService {
       this.prisma.course.count({ where }),
     ]);
 
+    const ratings = await this.avgRatingFor(rows.map((r) => r.id));
+
     return {
-      items: rows.map((c) => this.toSummary(c)),
+      items: rows.map((c) => this.toSummary(c, ratings.get(c.id) ?? 0)),
       total,
       page,
       pageSize,
@@ -80,8 +81,13 @@ export class CoursesService {
     if (!course || course.status !== CourseStatus.PUBLISHED) {
       throw new NotFoundException('Course not found');
     }
+    const agg = await this.prisma.review.aggregate({
+      where: { courseId: course.id },
+      _avg: { rating: true },
+    });
+    const avg = agg._avg.rating ? Math.round(agg._avg.rating * 10) / 10 : 0;
     return {
-      ...this.toSummary(course),
+      ...this.toSummary(course, avg),
       description: course.description,
       sections: course.sections.map((s) => ({
         id: s.id,
@@ -105,7 +111,8 @@ export class CoursesService {
       orderBy: { updatedAt: 'desc' },
       include: this.summaryInclude(),
     });
-    return rows.map((c) => this.toSummary(c));
+    const ratings = await this.avgRatingFor(rows.map((r) => r.id));
+    return rows.map((c) => this.toSummary(c, ratings.get(c.id) ?? 0));
   }
 
   /** Full editable course detail for its owner/admin, regardless of status. */
@@ -271,12 +278,31 @@ export class CoursesService {
       category: true,
       instructor: { select: { id: true, name: true, avatarUrl: true } },
       _count: { select: { enrollments: true, reviews: true } },
-      reviews: { select: { rating: true } },
     } satisfies Prisma.CourseInclude;
   }
 
-  private toSummary(course: CourseWithSummary) {
-    const ratings = course.reviews.map((r) => r.rating);
+  /**
+   * Average rating per course, computed with a single aggregate query for the
+   * whole page — never loads individual review rows (which would explode for a
+   * course with many reviews).
+   */
+  private async avgRatingFor(courseIds: string[]): Promise<Map<string, number>> {
+    if (courseIds.length === 0) {
+      return new Map();
+    }
+    const groups = await this.prisma.review.groupBy({
+      by: ['courseId'],
+      where: { courseId: { in: courseIds } },
+      _avg: { rating: true },
+    });
+    const map = new Map<string, number>();
+    for (const g of groups) {
+      map.set(g.courseId, g._avg.rating ? Math.round(g._avg.rating * 10) / 10 : 0);
+    }
+    return map;
+  }
+
+  private toSummary(course: CourseWithSummary, averageRating: number) {
     return {
       id: course.id,
       slug: course.slug,
@@ -287,7 +313,7 @@ export class CoursesService {
       status: course.status,
       format: course.format,
       price: course.price,
-      averageRating: averageRating(ratings),
+      averageRating,
       reviewCount: course._count.reviews,
       enrollmentCount: course._count.enrollments,
       category: course.category,
@@ -301,6 +327,5 @@ type CourseWithSummary = Prisma.CourseGetPayload<{
     category: true;
     instructor: { select: { id: true; name: true; avatarUrl: true } };
     _count: { select: { enrollments: true; reviews: true } };
-    reviews: { select: { rating: true } };
   };
 }>;

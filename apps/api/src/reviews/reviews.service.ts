@@ -1,17 +1,25 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpsertReviewDto } from './dto/upsert-review.dto';
+import { paginated } from '../common/pagination';
 
 @Injectable()
 export class ReviewsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  listForCourse(courseId: string) {
-    return this.prisma.review.findMany({
-      where: { courseId },
-      orderBy: { createdAt: 'desc' },
-      include: { user: { select: { id: true, name: true, avatarUrl: true } } },
-    });
+  async listForCourse(courseId: string, page: number, pageSize: number) {
+    const where = { courseId };
+    const [rows, total] = await this.prisma.$transaction([
+      this.prisma.review.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: { user: { select: { id: true, name: true, avatarUrl: true } } },
+      }),
+      this.prisma.review.count({ where }),
+    ]);
+    return paginated(rows, total, page, pageSize);
   }
 
   /** Create or update the current user's review. Requires enrollment. */

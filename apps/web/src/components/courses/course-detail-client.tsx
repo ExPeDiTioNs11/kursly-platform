@@ -15,8 +15,13 @@ import { clientApi } from '@/lib/client-api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { VideoPlayer } from '@/components/video-player';
+import dynamic from 'next/dynamic';
 import { CourseReviews } from '@/components/courses/course-reviews';
+
+// Heavy player (video.js + hls.js) — only loaded when a lesson is actually played.
+const VideoPlayer = dynamic(() => import('@/components/video-player').then((m) => m.VideoPlayer), {
+  ssr: false,
+});
 import { useToast } from '@/components/ui/toast';
 import { cn, formatDuration, formatPrice } from '@/lib/utils';
 

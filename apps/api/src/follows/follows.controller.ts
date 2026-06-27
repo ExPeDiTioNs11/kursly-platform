@@ -1,8 +1,9 @@
-import { Controller, Delete, Get, Param, Post } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { JwtPayload } from '@kursly/shared';
 import { FollowsService } from './follows.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { PaginationQueryDto } from '../common/pagination';
 
 @ApiTags('follows')
 @ApiBearerAuth()
@@ -23,15 +24,15 @@ export class FollowsController {
   }
 
   @Get(':userId/following')
-  @ApiOperation({ summary: 'List users a given user follows' })
-  userFollowing(@Param('userId') userId: string) {
-    return this.followsService.listFollowing(userId);
+  @ApiOperation({ summary: 'List users a given user follows (paginated)' })
+  userFollowing(@Param('userId') userId: string, @Query() q: PaginationQueryDto) {
+    return this.followsService.pageFollowing(userId, q.page ?? 1, q.pageSize ?? 20);
   }
 
   @Get(':userId/followers')
-  @ApiOperation({ summary: 'List a given user’s followers' })
-  userFollowers(@Param('userId') userId: string) {
-    return this.followsService.listFollowers(userId);
+  @ApiOperation({ summary: 'List a given user’s followers (paginated)' })
+  userFollowers(@Param('userId') userId: string, @Query() q: PaginationQueryDto) {
+    return this.followsService.pageFollowers(userId, q.page ?? 1, q.pageSize ?? 20);
   }
 
   @Post(':userId')

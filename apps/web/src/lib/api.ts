@@ -38,8 +38,9 @@ export const api = {
   getCourse(slug: string): Promise<CourseDetail> {
     return apiFetch<CourseDetail>(`/courses/${slug}`);
   },
-  listReviews(courseId: string): Promise<CourseReview[]> {
-    return apiFetch<CourseReview[]>(`/courses/${courseId}/reviews`);
+  async listReviews(courseId: string): Promise<CourseReview[]> {
+    const res = await apiFetch<Paginated<CourseReview>>(`/courses/${courseId}/reviews`);
+    return res.items;
   },
   listCategories(): Promise<Category[]> {
     return apiFetch<Category[]>('/categories');

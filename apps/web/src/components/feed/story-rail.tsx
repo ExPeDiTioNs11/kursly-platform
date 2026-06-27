@@ -216,8 +216,8 @@ function StoryComposer({
 
 function Avatar({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
   if (avatarUrl) {
-    // eslint-disable-next-line @next/next/no-img-element
     return (
+      // eslint-disable-next-line @next/next/no-img-element
       <img src={avatarUrl} alt={name} className="h-[52px] w-[52px] rounded-full object-cover" />
     );
   }

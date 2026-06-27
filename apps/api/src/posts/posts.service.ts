@@ -8,6 +8,7 @@ import { QueryPostsDto } from './dto/query-posts.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
+import { paginated } from '../common/pagination';
 
 @Injectable()
 export class PostsService {
@@ -138,19 +139,34 @@ export class PostsService {
     return { liked: false, likeCount: await this.prisma.postLike.count({ where: { postId } }) };
   }
 
-  async listComments(postId: string): Promise<PostComment[]> {
+  async listComments(
+    postId: string,
+    page: number,
+    pageSize: number,
+  ): Promise<Paginated<PostComment>> {
     await this.assertPostExists(postId);
-    const comments = await this.prisma.postComment.findMany({
-      where: { postId },
-      orderBy: { createdAt: 'asc' },
-      include: { author: this.authorSelect() },
-    });
-    return comments.map((c) => ({
-      id: c.id,
-      content: c.content,
-      author: { ...c.author, role: c.author.role as Role },
-      createdAt: c.createdAt.toISOString(),
-    }));
+    const where = { postId };
+    const [comments, total] = await this.prisma.$transaction([
+      this.prisma.postComment.findMany({
+        where,
+        orderBy: { createdAt: 'asc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: { author: this.authorSelect() },
+      }),
+      this.prisma.postComment.count({ where }),
+    ]);
+    return paginated(
+      comments.map((c) => ({
+        id: c.id,
+        content: c.content,
+        author: { ...c.author, role: c.author.role as Role },
+        createdAt: c.createdAt.toISOString(),
+      })),
+      total,
+      page,
+      pageSize,
+    );
   }
 
   async addComment(

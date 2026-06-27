@@ -13,6 +13,7 @@ import { UpdateInternshipDto } from './dto/update-internship.dto';
 import { QueryInternshipsDto } from './dto/query-internships.dto';
 import { ApplyDto } from './dto/apply.dto';
 import { UpdateApplicationDto } from './dto/update-application.dto';
+import { paginated } from '../common/pagination';
 
 @Injectable()
 export class InternshipsService {
@@ -141,20 +142,31 @@ export class InternshipsService {
     return { applied: false };
   }
 
-  async listApplicants(user: JwtPayload, internshipId: string) {
+  async listApplicants(user: JwtPayload, internshipId: string, page: number, pageSize: number) {
     await this.assertOwner(user, internshipId);
-    const apps = await this.prisma.internshipApplication.findMany({
-      where: { internshipId },
-      orderBy: { createdAt: 'desc' },
-      include: { applicant: { select: { id: true, name: true, avatarUrl: true } } },
-    });
-    return apps.map((a) => ({
-      id: a.id,
-      message: a.message,
-      status: a.status,
-      createdAt: a.createdAt.toISOString(),
-      applicant: a.applicant,
-    }));
+    const where = { internshipId };
+    const [apps, total] = await this.prisma.$transaction([
+      this.prisma.internshipApplication.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: { applicant: { select: { id: true, name: true, avatarUrl: true } } },
+      }),
+      this.prisma.internshipApplication.count({ where }),
+    ]);
+    return paginated(
+      apps.map((a) => ({
+        id: a.id,
+        message: a.message,
+        status: a.status,
+        createdAt: a.createdAt.toISOString(),
+        applicant: a.applicant,
+      })),
+      total,
+      page,
+      pageSize,
+    );
   }
 
   async updateApplication(user: JwtPayload, applicationId: string, dto: UpdateApplicationDto) {

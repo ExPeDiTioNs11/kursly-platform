@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Star, Trash2 } from 'lucide-react';
-import type { CourseReview } from '@kursly/shared';
+import type { CourseReview, Paginated } from '@kursly/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { clientApi } from '@/lib/client-api';
@@ -37,8 +37,10 @@ export function CourseReviews({
     : 0;
 
   async function refresh() {
-    const fresh = await clientApi.get<CourseReview[]>(`courses/${courseId}/reviews`);
-    setReviews(fresh);
+    const fresh = await clientApi.get<Paginated<CourseReview>>(
+      `courses/${courseId}/reviews?pageSize=50`,
+    );
+    setReviews(fresh.items);
   }
 
   function startEdit() {
@@ -219,8 +221,8 @@ function StarInput({ value, onChange }: { value: number; onChange: (v: number) =
 
 function Avatar({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
   if (avatarUrl) {
-    // eslint-disable-next-line @next/next/no-img-element
     return (
+      // eslint-disable-next-line @next/next/no-img-element
       <img src={avatarUrl} alt={name} className="h-10 w-10 shrink-0 rounded-full object-cover" />
     );
   }

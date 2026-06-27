@@ -19,6 +19,7 @@ import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { PaginationQueryDto } from '../common/pagination';
 
 @ApiTags('posts')
 @ApiBearerAuth()
@@ -64,9 +65,9 @@ export class PostsController {
   }
 
   @Get(':id/comments')
-  @ApiOperation({ summary: 'List a post’s comments' })
-  listComments(@Param('id') id: string) {
-    return this.postsService.listComments(id);
+  @ApiOperation({ summary: 'List a post’s comments (paginated)' })
+  listComments(@Param('id') id: string, @Query() q: PaginationQueryDto) {
+    return this.postsService.listComments(id, q.page ?? 1, q.pageSize ?? 20);
   }
 
   @Post(':id/comments')

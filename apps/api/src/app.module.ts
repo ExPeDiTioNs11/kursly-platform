@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
@@ -24,8 +25,11 @@ import { LoggingInterceptor } from './common/logging.interceptor';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    // Global rate limiting: 100 requests / minute per client by default.
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
+    ScheduleModule.forRoot(),
+    // Global rate limiting. Generous default for an authenticated SPA that makes
+    // several API calls per screen; sensitive routes (auth) override this with a
+    // much stricter @Throttle.
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 300 }]),
     PrismaModule,
     AuthModule,
     UsersModule,

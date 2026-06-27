@@ -190,8 +190,8 @@ function ListRow({
 
 function Logo({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
   if (avatarUrl) {
-    // eslint-disable-next-line @next/next/no-img-element
     return (
+      // eslint-disable-next-line @next/next/no-img-element
       <img src={avatarUrl} alt={name} className="h-11 w-11 shrink-0 rounded-lg object-cover" />
     );
   }
