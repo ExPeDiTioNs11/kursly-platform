@@ -19,6 +19,8 @@ import { UpdateCourseDto } from './dto/update-course.dto';
 import { QueryCoursesDto } from './dto/query-courses.dto';
 import { CreateSectionDto } from './dto/create-section.dto';
 import { CreateLessonDto } from './dto/create-lesson.dto';
+import { UpdateSectionDto } from './dto/update-section.dto';
+import { UpdateLessonDto } from './dto/update-lesson.dto';
 import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -33,6 +35,23 @@ export class CoursesController {
   @ApiOperation({ summary: 'List published courses (paginated, filterable)' })
   findAll(@Query() query: QueryCoursesDto) {
     return this.coursesService.findAll(query);
+  }
+
+  // Declared before ':slug' so 'mine' is not captured as a slug.
+  @Get('mine')
+  @Roles(Role.INSTRUCTOR, Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List the current instructor’s own courses (all statuses)' })
+  findMine(@CurrentUser() user: JwtPayload) {
+    return this.coursesService.findMine(user);
+  }
+
+  @Get(':id/manage')
+  @Roles(Role.INSTRUCTOR, Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get full editable course detail for its owner/admin' })
+  manage(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.coursesService.manageDetail(user, id);
   }
 
   @Public()
@@ -89,5 +108,47 @@ export class CoursesController {
     @Body() dto: CreateLessonDto,
   ) {
     return this.coursesService.addLesson(user, sectionId, dto);
+  }
+
+  @Patch('sections/:sectionId')
+  @Roles(Role.INSTRUCTOR, Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update a section' })
+  updateSection(
+    @CurrentUser() user: JwtPayload,
+    @Param('sectionId') sectionId: string,
+    @Body() dto: UpdateSectionDto,
+  ) {
+    return this.coursesService.updateSection(user, sectionId, dto);
+  }
+
+  @Delete('sections/:sectionId')
+  @Roles(Role.INSTRUCTOR, Role.ADMIN)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete a section' })
+  removeSection(@CurrentUser() user: JwtPayload, @Param('sectionId') sectionId: string) {
+    return this.coursesService.removeSection(user, sectionId);
+  }
+
+  @Patch('lessons/:lessonId')
+  @Roles(Role.INSTRUCTOR, Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update a lesson' })
+  updateLesson(
+    @CurrentUser() user: JwtPayload,
+    @Param('lessonId') lessonId: string,
+    @Body() dto: UpdateLessonDto,
+  ) {
+    return this.coursesService.updateLesson(user, lessonId, dto);
+  }
+
+  @Delete('lessons/:lessonId')
+  @Roles(Role.INSTRUCTOR, Role.ADMIN)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete a lesson' })
+  removeLesson(@CurrentUser() user: JwtPayload, @Param('lessonId') lessonId: string) {
+    return this.coursesService.removeLesson(user, lessonId);
   }
 }

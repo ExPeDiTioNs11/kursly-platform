@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsInt, IsOptional, IsString, Matches, Min, MinLength } from 'class-validator';
-import { CourseLevel, CourseStatus } from '@kursly/shared';
+import { CourseFormat, CourseLevel, CourseStatus } from '@kursly/shared';
 
 export class CreateCourseDto {
   @ApiProperty({ example: 'Full-Stack TypeScript' })
@@ -39,6 +39,11 @@ export class CreateCourseDto {
   @IsOptional()
   @IsEnum(CourseStatus)
   status?: CourseStatus;
+
+  @ApiProperty({ enum: CourseFormat, required: false, default: CourseFormat.FULL })
+  @IsOptional()
+  @IsEnum(CourseFormat)
+  format?: CourseFormat;
 
   @ApiProperty({ required: false, default: 0, description: 'Price in minor units (cents)' })
   @IsOptional()

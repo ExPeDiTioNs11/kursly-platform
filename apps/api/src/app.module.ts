@@ -12,6 +12,12 @@ import { ReviewsModule } from './reviews/reviews.module';
 import { ProgressModule } from './progress/progress.module';
 import { StorageModule } from './storage/storage.module';
 import { HealthModule } from './health/health.module';
+import { PostsModule } from './posts/posts.module';
+import { StoriesModule } from './stories/stories.module';
+import { FollowsModule } from './follows/follows.module';
+import { FeedModule } from './feed/feed.module';
+import { StatsModule } from './stats/stats.module';
+import { InternshipsModule } from './internships/internships.module';
 import { PrismaExceptionFilter } from './common/prisma-exception.filter';
 import { LoggingInterceptor } from './common/logging.interceptor';
 
@@ -30,6 +36,12 @@ import { LoggingInterceptor } from './common/logging.interceptor';
     ProgressModule,
     StorageModule,
     HealthModule,
+    PostsModule,
+    StoriesModule,
+    FollowsModule,
+    FeedModule,
+    StatsModule,
+    InternshipsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

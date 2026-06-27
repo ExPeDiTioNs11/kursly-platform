@@ -1,7 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
-import { CourseLevel } from '@kursly/shared';
+import { CourseFormat, CourseLevel } from '@kursly/shared';
 
 export class QueryCoursesDto {
   @ApiPropertyOptional({ description: 'Free-text search over title/subtitle' })
@@ -9,15 +9,33 @@ export class QueryCoursesDto {
   @IsString()
   search?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by category slug' })
+  @ApiPropertyOptional({ description: 'Filter by category slug (includes its subcategories)' })
   @IsOptional()
   @IsString()
   category?: string;
+
+  @ApiPropertyOptional({ description: 'Narrow to a specific subcategory slug' })
+  @IsOptional()
+  @IsString()
+  subcategory?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by instructor id' })
+  @IsOptional()
+  @IsString()
+  instructorId?: string;
 
   @ApiPropertyOptional({ enum: CourseLevel })
   @IsOptional()
   @IsEnum(CourseLevel)
   level?: CourseLevel;
+
+  @ApiPropertyOptional({
+    enum: CourseFormat,
+    description: 'FULL = standard course, MINI = short lesson',
+  })
+  @IsOptional()
+  @IsEnum(CourseFormat)
+  format?: CourseFormat;
 
   @ApiPropertyOptional({ default: 1, minimum: 1 })
   @IsOptional()

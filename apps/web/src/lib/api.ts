@@ -1,4 +1,12 @@
-import type { CourseDetail, CourseSummary, Category, Paginated } from '@kursly/shared';
+import type {
+  CategoryNode,
+  CourseDetail,
+  CourseReview,
+  CourseSummary,
+  Category,
+  Paginated,
+  PlatformStats,
+} from '@kursly/shared';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
@@ -30,7 +38,16 @@ export const api = {
   getCourse(slug: string): Promise<CourseDetail> {
     return apiFetch<CourseDetail>(`/courses/${slug}`);
   },
+  listReviews(courseId: string): Promise<CourseReview[]> {
+    return apiFetch<CourseReview[]>(`/courses/${courseId}/reviews`);
+  },
   listCategories(): Promise<Category[]> {
     return apiFetch<Category[]>('/categories');
+  },
+  listCategoryTree(): Promise<CategoryNode[]> {
+    return apiFetch<CategoryNode[]>('/categories/tree');
+  },
+  getStats(): Promise<PlatformStats> {
+    return apiFetch<PlatformStats>('/stats');
   },
 };

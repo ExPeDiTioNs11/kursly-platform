@@ -18,6 +18,14 @@ export class CategoriesController {
     return this.categoriesService.findAll();
   }
 
+  // Declared before the ':slug' route so 'tree' is not captured as a slug.
+  @Public()
+  @Get('tree')
+  @ApiOperation({ summary: 'List categories as a tree (top-level with subcategories)' })
+  tree() {
+    return this.categoriesService.tree();
+  }
+
   @Public()
   @Get(':slug')
   @ApiOperation({ summary: 'Get a category by slug' })

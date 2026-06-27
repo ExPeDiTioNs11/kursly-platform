@@ -13,7 +13,19 @@ datasource db {
 enum Role {
   STUDENT
   INSTRUCTOR
+  COMPANY
   ADMIN
+}
+
+enum InternshipStatus {
+  OPEN
+  CLOSED
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
 }
 
 enum CourseStatus {
@@ -26,6 +38,11 @@ enum CourseLevel {
   BEGINNER
   INTERMEDIATE
   ADVANCED
+}
+
+enum CourseFormat {
+  FULL
+  MINI
 }
 
 model User {
@@ -45,6 +62,19 @@ model User {
   progress      Progress[]
   reviews       Review[]
   refreshTokens RefreshToken[]
+
+  // Social graph
+  posts        Post[]
+  postLikes    PostLike[]
+  postComments PostComment[]
+  stories      Story[]
+  storyViews   StoryView[]
+  following    Follow[]      @relation("Follower")
+  followers    Follow[]      @relation("Following")
+
+  // Internships
+  internships  Internship[]            @relation("CompanyInternships")
+  applications InternshipApplication[] @relation("UserApplications")
 
   @@index([role])
   @@map("users")
@@ -71,8 +101,14 @@ model Category {
   description String?
   createdAt   DateTime @default(now())
 
+  // Self-relation: a category may have a parent (subcategories form a tree).
+  parentId String?
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children Category[] @relation("CategoryTree")
+
   courses Course[]
 
+  @@index([parentId])
   @@map("categories")
 }
 
@@ -85,6 +121,8 @@ model Course {
   thumbnailUrl String?
   level        CourseLevel  @default(BEGINNER)
   status       CourseStatus @default(DRAFT)
+  // FULL = standard multi-section course; MINI = short, bite-sized lesson.
+  format       CourseFormat @default(FULL)
   // Price stored in minor units (e.g. cents) to avoid float rounding.
   price        Int          @default(0)
 
@@ -97,6 +135,7 @@ model Course {
   sections    Section[]
   enrollments Enrollment[]
   reviews     Review[]
+  posts       Post[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -104,6 +143,7 @@ model Course {
   @@index([instructorId])
   @@index([categoryId])
   @@index([status])
+  @@index([format])
   @@map("courses")
 }
 
@@ -189,4 +229,139 @@ model Review {
   @@unique([userId, courseId])
   @@index([courseId])
   @@map("reviews")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Social layer: feed posts, ephemeral stories and the follow graph.
+// ─────────────────────────────────────────────────────────────
+
+model Post {
+  id       String  @id @default(cuid())
+  authorId String
+  author   User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  content  String
+  imageUrl String?
+
+  // A post may optionally reference a course it is about.
+  courseId String?
+  course   Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
+  likes    PostLike[]
+  comments PostComment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("posts")
+}
+
+model PostLike {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+  @@index([userId])
+  @@map("post_likes")
+}
+
+model PostComment {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([postId])
+  @@map("post_comments")
+}
+
+model Story {
+  id       String  @id @default(cuid())
+  authorId String
+  author   User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  mediaUrl String
+  caption  String?
+
+  // Stories are ephemeral: list endpoints only return those < 24h old.
+  createdAt DateTime @default(now())
+
+  views StoryView[]
+
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("stories")
+}
+
+model StoryView {
+  id        String   @id @default(cuid())
+  storyId   String
+  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([storyId, userId])
+  @@map("story_views")
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  follower    User     @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String
+  following   User     @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@index([followingId])
+  @@map("follows")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Internships: companies post listings, students apply.
+// ─────────────────────────────────────────────────────────────
+
+model Internship {
+  id             String           @id @default(cuid())
+  companyId      String
+  company        User             @relation("CompanyInternships", fields: [companyId], references: [id], onDelete: Cascade)
+  title          String
+  description    String
+  field          String?
+  location       String?
+  isRemote       Boolean          @default(false)
+  durationMonths Int?
+  status         InternshipStatus @default(OPEN)
+
+  applications InternshipApplication[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([status])
+  @@map("internships")
+}
+
+model InternshipApplication {
+  id           String            @id @default(cuid())
+  internshipId String
+  internship   Internship        @relation(fields: [internshipId], references: [id], onDelete: Cascade)
+  applicantId  String
+  applicant    User              @relation("UserApplications", fields: [applicantId], references: [id], onDelete: Cascade)
+  message      String?
+  status       ApplicationStatus @default(PENDING)
+  createdAt    DateTime          @default(now())
+
+  @@unique([internshipId, applicantId])
+  @@index([applicantId])
+  @@map("internship_applications")
 }

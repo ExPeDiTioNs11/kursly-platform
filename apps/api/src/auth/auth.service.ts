@@ -26,12 +26,16 @@ export class AuthService {
       throw new ConflictException('Email is already registered');
     }
     const passwordHash = await bcrypt.hash(dto.password, SALT_ROUNDS);
+    // Self-registration may only pick a non-privileged role; ADMIN is never
+    // assignable through the public endpoint.
+    const selfAssignable: Role[] = [Role.STUDENT, Role.INSTRUCTOR, Role.COMPANY];
+    const role = dto.role && selfAssignable.includes(dto.role) ? dto.role : Role.STUDENT;
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
         name: dto.name,
         passwordHash,
-        role: dto.role ?? Role.STUDENT,
+        role,
       },
     });
     return this.buildAuthResponse(user);

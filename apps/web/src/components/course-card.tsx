@@ -6,18 +6,18 @@ import { formatPrice } from '@/lib/utils';
 
 export function CourseCard({ course }: { course: CourseSummary }) {
   return (
-    <Link href={`/courses/${course.slug}`} className="block">
-      <Card className="h-full overflow-hidden transition-shadow hover:shadow-md">
-        <div className="aspect-video w-full bg-muted">
+    <Link href={`/courses/${course.slug}`} className="group block">
+      <Card className="h-full overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/5">
+        <div className="aspect-video w-full overflow-hidden bg-muted">
           {course.thumbnailUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={course.thumbnailUrl}
               alt={course.title}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
-            <div className="flex h-full items-center justify-center text-muted-foreground">
+            <div className="flex h-full items-center justify-center bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 text-4xl font-bold text-white/90">
               {course.title.charAt(0)}
             </div>
           )}
@@ -31,7 +31,7 @@ export function CourseCard({ course }: { course: CourseSummary }) {
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
           <p className="line-clamp-2">{course.subtitle}</p>
-          <p className="mt-2">by {course.instructor.name}</p>
+          <p className="mt-2">Eğitmen: {course.instructor.name}</p>
         </CardContent>
         <CardFooter className="justify-between">
           <span className="text-sm">

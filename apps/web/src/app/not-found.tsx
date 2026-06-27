@@ -3,11 +3,11 @@ import { buttonVariants } from '@/components/ui/button';
 
 export default function NotFound() {
   return (
-    <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
+    <div className="container flex flex-col items-center justify-center gap-4 py-24 text-center">
       <h1 className="text-4xl font-bold">404</h1>
-      <p className="text-muted-foreground">We couldn’t find what you were looking for.</p>
+      <p className="text-muted-foreground">Aradığın sayfayı bulamadık.</p>
       <Link href="/" className={buttonVariants()}>
-        Back to courses
+        Ana sayfaya dön
       </Link>
     </div>
   );

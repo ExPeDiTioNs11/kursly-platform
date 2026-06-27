@@ -10,6 +10,15 @@ export class CategoriesService {
     return this.prisma.category.findMany({ orderBy: { name: 'asc' } });
   }
 
+  /** Top-level categories, each with their immediate subcategories. */
+  tree() {
+    return this.prisma.category.findMany({
+      where: { parentId: null },
+      orderBy: { name: 'asc' },
+      include: { children: { orderBy: { name: 'asc' } } },
+    });
+  }
+
   async findBySlug(slug: string) {
     const category = await this.prisma.category.findUnique({ where: { slug } });
     if (!category) {

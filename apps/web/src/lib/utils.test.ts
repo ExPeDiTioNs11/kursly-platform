@@ -8,8 +8,8 @@ describe('cn', () => {
 });
 
 describe('formatPrice', () => {
-  it('shows Free for zero', () => {
-    expect(formatPrice(0)).toBe('Free');
+  it('shows Ücretsiz for zero', () => {
+    expect(formatPrice(0)).toBe('Ücretsiz');
   });
 
   it('formats minor units as currency', () => {
